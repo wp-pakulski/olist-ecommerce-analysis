@@ -16,3 +16,6 @@ venv/
 # Editor
 .vscode/
 .idea/
+
+# Excel lock files
+~$*

@@ -30,6 +30,8 @@ marketing spend, and service quality is hostage to delivery time and a long tail
 
 ➡️ **Full analysis with quantified recommendations:** [docs/business_conclusions.md](docs/business_conclusions.md)
 
+🎤 **Project presentation (8 slides):** [PDF](docs/olist_presentation.pdf) · [interactive (Gamma)](https://gamma.app/docs/Olist-E-Commerce-Marketplace-Analysis-xfld92snoqd23u2)
+
 ## Sample visualizations
 
 ![Monthly revenue trend](reports/line_monthly_revenue.png)
@@ -71,7 +73,8 @@ portfolio-ecommerce/
 ├── docs/
 │   ├── business_conclusions.md   # findings + recommendations
 │   ├── erd_olist.drawio          # entity-relationship diagram (source)
-│   └── erd_olist.png             # entity-relationship diagram (export)
+│   ├── erd_olist.png             # entity-relationship diagram (export)
+│   └── olist_presentation.pdf    # 8-slide project presentation
 └── reports/                      # exported charts (PNG)
 ```
 
