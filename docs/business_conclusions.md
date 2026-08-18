@@ -1,169 +1,204 @@
 # Business Conclusions — Olist E-commerce Analysis
 
 > Analiza danych brazylijskiego marketplace Olist (~99 tys. zamówień, 2016–2018).
-> Cel: zidentyfikować dźwignie wzrostu i ryzyka operacyjne, oraz przełożyć je na
-> konkretne, mierzalne rekomendacje biznesowe.
+> Szukałem dźwigni wzrostu i ryzyk operacyjnych, a potem przekładałem je na rekomendacje,
+> które da się zmierzyć.
 
 ---
 
 ## 1. Kontekst i cel
 
-Olist to brazylijski marketplace, który łączy małych i średnich sprzedawców z klientami
-głównych platform e-commerce, obsługując logistykę i płatności jako warstwa pośrednia.
-Analiza obejmuje 9 powiązanych tabel (zamówienia, pozycje, płatności, recenzje, sprzedawcy,
-klienci, produkty, geolokalizacja), ~99 tys. zamówień z lat 2016–2018 dla rynku brazylijskiego.
+Olist łączy małych i średnich sprzedawców z klientami największych brazylijskich platform
+e-commerce, biorąc na siebie logistykę i płatności. Dane obejmują 9 powiązanych tabel
+(zamówienia, pozycje, płatności, recenzje, sprzedawcy, klienci, produkty, geolokalizacja)
+i około 99 tys. zamówień z lat 2016–2018.
 
-**Definicja zakresu:** wszystkie metryki w tym dokumencie liczone są na zamówieniach
-o statusie `delivered` (96 478 z 99 441, tj. 97% wolumenu) — spójnie z notebookami,
-zapytaniami SQL i dashboardem Power BI. Jedyny wyjątek: analiza anulacji (`sql/04`),
-która z definicji wymaga wszystkich statusów. Rating sprzedawcy liczony jest na poziomie
-zamówienia (1 recenzja = 1 głos), nie pozycji koszyka.
+**Zakres ustaliłem, zanim policzyłem cokolwiek.** Wszystkie metryki liczę na zamówieniach
+o statusie `delivered`: 96 478 z 99 441, czyli 97% wolumenu. Tak samo w notebookach, w SQL-u
+i w dashboardzie. Jedyny świadomy wyjątek to analiza anulacji w `sql/04`, która z definicji
+potrzebuje wszystkich statusów.
 
-Pytanie biznesowe: **Co napędza przychód marketplace i co realnie zagraża jego skalowaniu —
-po stronie retencji klientów i jakości sprzedawców?** Celem nie jest opis danych, lecz wskazanie
-dźwigni, na które platforma może wpłynąć operacyjnie.
+Nie jest to formalność. Kiedy raz policzyłem satysfakcję na wszystkich recenzjach zamiast na
+dostarczonych, średnia ocena wyszła 4,09 zamiast 4,16 i nic w kodzie nie zaprotestowało.
+Rating sprzedawcy liczę na poziomie zamówienia: jedna recenzja to jeden głos, niezależnie od
+tego, ile pozycji sprzedawca miał w koszyku.
+
+Pytanie, na które odpowiadam: **co napędza przychód marketplace i co realnie zagraża jego
+skalowaniu — po stronie retencji klientów i po stronie jakości sprzedawców?** Chodziło mi
+o wskazanie dźwigni, na które platforma może wpłynąć operacyjnie, a nie o opisanie danych.
 
 ---
 
 ## 2. Kluczowe wnioski (Executive Summary)
 
-Najważniejsze liczby z analizy:
-
 - **Przychód całkowity:** 13 221 498 BRL | **Zamówienia:** 96 478 | **AOV:** 137,04 BRL (mediana 86,57 BRL)
-- **Pareto sprzedawców:** top 20% sprzedawców generuje **82,3%** przychodu (z 2 970 sprzedawców z dostarczonymi zamówieniami)
-- **Retencja:** tylko **3,0%** klientów wraca (2 801 z 93 358 unikalnych)
-- **Dostawa ↔ satysfakcja:** dostawa ≤7 dni = **4,41★**, dostawa >30 dni = **2,18★**
-- **Terminowość:** **91,9%** zamówień dostarczonych na czas (śr. czas dostawy 12,1 dnia, mediana 10)
+- **Pareto sprzedawców:** top 20% generuje **82,3%** przychodu (z 2 970 sprzedawców z dostarczonymi zamówieniami)
+- **Retencja:** wraca tylko **3,0%** klientów (2 801 z 93 358 unikalnych)
+- **Dostawa a satysfakcja:** do 7 dni **4,41★**, powyżej 30 dni **2,18★**
+- **Terminowość:** **91,9%** zamówień na czas, średni czas dostawy 12,1 dnia (mediana 10)
 
-**Wniosek syntetyczny:** Olist to sprawna maszyna do *pozyskiwania* i *sprzedaży* — wysoka
-terminowość, zdrowe AOV i jasny lider przychodu (top 20% sprzedawców = 82,3% obrotu). Ale model
-stoi na dwóch słabych filarach: **retencja praktycznie nie istnieje (3,0%)**, więc każdy złoty
-przychodu wymaga ciągłego dokupywania nowych klientów, a **jakość obsługi jest zakładnikiem
-dwóch zmiennych** — czasu dostawy i długiego ogona słabych sprzedawców. Wzrost jest realny, ale
-dziś *kupowany*, a nie *budowany*.
+Olist bardzo dobrze pozyskuje klientów i sprzedaje im raz. Terminowość jest wysoka, AOV zdrowe,
+a przychód ma wyraźnego lidera w postaci top 20% sprzedawców. Problem leży gdzie indziej.
+
+Retencja praktycznie nie istnieje, więc każdy złoty przychodu wymaga dokupienia kolejnego
+klienta. Jakość obsługi zależy od dwóch rzeczy, nad którymi platforma panuje tylko częściowo:
+czasu dostawy i długiego ogona słabych sprzedawców. Wzrost jest realny, ale kupowany, nie
+budowany.
 
 ---
 
 ## 3. Analiza szczegółowa
 
 ### 3a. Sprzedaż i sezonowość
-- Szczyt sprzedaży: **Black Friday, listopad 2017** (wyraźny skok MoM — `sql/03`)
-- Top kategorie wg przychodu całkowitego:
-  1. health_beauty — 1 233 132 BRL (479 sprzedawców)
-  2. watches_gifts — 1 166 177 BRL (95 sprzedawców)
-  3. bed_bath_table — 1 023 435 BRL (189 sprzedawców)
 
-**Wniosek:** Dwie czołowe kategorie mają zbliżony przychód, ale **przeciwną strukturę rynku**.
-`health_beauty` jest rozdrobniona (479 sprzedawców, śr. ~2 574 BRL/sprzedawca) — to rynek
-konkurencyjny, odporny na utratę pojedynczego gracza, ale trudny do zarządzania jakościowo.
-`watches_gifts` jest skoncentrowana (95 sprzedawców, śr. ~12 275 BRL, ~4,8× więcej) — wysoka
-efektywność, ale ryzyko zależności: odejście kilku kluczowych sprzedawców uderza wprost w przychód.
-Implikacja: te dwie kategorie wymagają **różnych strategii retencji sprzedawcy** — w pierwszej
-liczy się standaryzacja jakości, w drugiej account management kluczowych partnerów.
+Szczyt sprzedaży wypada na Black Friday w listopadzie 2017, z wyraźnym skokiem miesiąc do
+miesiąca (`sql/03`). Trzy najmocniejsze kategorie przychodowo:
+
+1. health_beauty — 1 233 132 BRL (479 sprzedawców)
+2. watches_gifts — 1 166 177 BRL (95 sprzedawców)
+3. bed_bath_table — 1 023 435 BRL (189 sprzedawców)
+
+Dwie czołowe kategorie mają niemal identyczny przychód i zupełnie różną strukturę rynku. To
+było pierwsze miejsce, w którym liczby zmusiły mnie do zmiany zdania: patrząc tylko na ranking
+przychodu, wyglądały na ten sam typ biznesu.
+
+`health_beauty` jest rozdrobniona — 479 sprzedawców, średnio około 2 574 BRL na sprzedawcę.
+Taki rynek jest konkurencyjny i odporny na odejście pojedynczego gracza, ale trudno w nim
+pilnować jakości. `watches_gifts` jest skoncentrowana: 95 sprzedawców, średnio około 12 275 BRL,
+czyli mniej więcej 4,8 raza więcej na głowę. Wysoka efektywność, ale i realne ryzyko zależności.
+
+Wniosek praktyczny: te dwie kategorie potrzebują innych strategii utrzymania sprzedawcy.
+W pierwszej liczy się standaryzacja jakości, w drugiej opieka nad kluczowymi partnerami.
 
 ### 3b. Sprzedawcy — koncentracja i jakość
-- **Pareto:** top 20% sprzedawców = 82,3% przychodu
-- **Problem sellers** (rating < 3,5): **343 sprzedawców (~11,6% z 2 965 ocenionych)** —
-  rating liczony na poziomie zamówienia, tylko zamówienia dostarczone
-- Przykład office_furniture: jeden dominator (64% przychodu kategorii, rating 3,49 przy
-  970 zamówieniach) wolumenem wyznacza ocenę całej kategorii, mimo że sprzedawca #2
-  (122 zamówienia) utrzymuje rating 4,25
 
-**Wniosek:** Mamy klasyczny konflikt **koncentracji przychodu vs rozproszenia ryzyka**. Przychód
-jest skupiony w wąskiej grupie (Pareto), ale problem jakościowy siedzi w długim ogonie — ponad
-co dziesiąty sprzedawca ma rating < 3,5. Dla platformy to podwójne zagrożenie: (1) słaba jakość
-ogona psuje reputację całego marketplace (klient ocenia „Olist", nie konkretnego sprzedawcę),
-a (2) pojedynczy dominator może zaniżyć ocenę całej kategorii (jak office_furniture) — przy czym
-przykład sprzedawcy #2 z tej samej kategorii (rating 4,25) dowodzi, że problem jest operacyjny,
-nie produktowy. To znaczy, że jakość trzeba kontrolować **na dwóch poziomach**: bramka wejścia
-dla ogona i interwencja celowana w kluczowych, ale słabych sprzedawców.
+Top 20% sprzedawców odpowiada za 82,3% przychodu. Jednocześnie **343 sprzedawców, czyli około
+11,6% z 2 965 ocenionych**, ma rating poniżej 3,5. Rating liczę na poziomie zamówienia i tylko
+na zamówieniach dostarczonych.
+
+Najciekawszy przypadek to kategoria office_furniture. Jeden sprzedawca robi 64% jej przychodu
+przy 970 zamówieniach i ratingu 3,49, więc samym wolumenem wyznacza ocenę całej kategorii.
+Tymczasem sprzedawca numer dwa, przy 122 zamówieniach, trzyma 4,25.
+
+Ta para liczb jest ważniejsza, niż wygląda. Gdyby słaba ocena wynikała z charakteru produktu,
+oba sklepy miałyby podobny rating. Skoro nie mają, **problem jest operacyjny, nie produktowy** —
+a to znaczy, że da się go naprawić.
+
+Platforma ma tu dwa różne zagrożenia naraz. Słaba jakość ogona psuje reputację całego
+marketplace, bo klient ocenia „Olist", a nie konkretnego sprzedawcę. Do tego pojedynczy
+dominator potrafi zaniżyć ocenę całej kategorii. Kontrola jakości musi więc działać na dwóch
+poziomach: bramka wejścia dla ogona i celowana interwencja u dużych, ale słabych sprzedawców.
 
 ### 3c. Klienci i retencja
-- **93 358** unikalnych klientów, repeat rate **3,0%**, częstotliwość ~1,03 zamówienia/klient
 
-**Wniosek:** To najpoważniejszy strukturalny problem biznesu. Repeat rate 3,0% oznacza, że
-praktycznie każdy klient to klient **jednorazowy** — średnio 1,03 zamówienia na osobę. Ekonomicznie:
-koszt pozyskania klienta (CAC) jest ponoszony raz, ale **nie ma go z czego zamortyzować**, bo
-wartość życiowa klienta (LTV) niemal równa się jednemu AOV (~137 BRL). W zdrowym marketplace LTV
-powinno być wielokrotnością CAC — tutaj relacja LTV/CAC jest niebezpiecznie blisko granicy
-opłacalności. Konsekwencja: wzrost przychodu jest **całkowicie zależny od ciągłych wydatków
-marketingowych**; gdy budżet akwizycji spadnie, przychód spada razem z nim. Retencja nie jest tu
-„miłym dodatkiem" — to warunek rentowności w dłuższym horyzoncie.
+93 358 unikalnych klientów, repeat rate **3,0%**, około 1,03 zamówienia na klienta.
+
+To najpoważniejszy problem strukturalny w całej analizie i jedyna liczba, którą sprawdzałem
+trzy razy, bo wydawała mi się zbyt niska. Jest poprawna.
+
+Praktycznie każdy klient jest jednorazowy. Koszt pozyskania ponosi się raz i nie ma go z czego
+zamortyzować, bo wartość życiowa klienta jest niemal równa jednemu AOV, czyli około 137 BRL.
+W zdrowym marketplace LTV powinno być wielokrotnością CAC. Tutaj relacja jest niebezpiecznie
+blisko granicy opłacalności.
+
+Konsekwencja jest prosta: wzrost przychodu zależy całkowicie od ciągłych wydatków
+marketingowych. Kiedy budżet akwizycji spada, przychód spada razem z nim. Retencja nie jest
+w tym modelu miłym dodatkiem, tylko warunkiem rentowności.
 
 ### 3d. Dostawa i logistyka
-- Śr. czas dostawy: **12,1 dnia** (mediana 10) | On-Time: **91,9%**
-- Geografia: **SP 8,3 dnia** (najszybciej) vs **AP 26,7 / AM 26,0 dnia** (~3× różnica)
-- Rating per czas dostawy: ≤7 dni → 4,41★ | 8–14 → 4,29★ | 15–21 → 4,10★ | 22–30 → 3,49★ | >30 → 2,18★
 
-**Wniosek:** Czas dostawy to **najsilniejszy pojedynczy driver satysfakcji** w danych — różnica
-między dostawą ≤7 dni a >30 dni to spadek z 4,41★ do 2,18★, czyli ponad 2,2 gwiazdki. Co istotne,
-spadek nie jest liniowy: do 21 dni rating trzyma się ≥4,1, a **załamanie następuje w przedziale
-22–30 dni (3,49★)** — próg bólu klienta leży przy ~3 tygodniach, nie przy 2. A ponieważ
-satysfakcja przekłada się na reputację marketplace i (pośrednio) na retencję, logistyka łączy oba
-główne problemy biznesu. Geografia pokazuje, gdzie leży dźwignia: SP (8,3 dnia) vs AP/AM (~26–27
-dni, ~3× wolniej) — to nie jest problem „całej platformy", lecz **kilku stanów Północy**. Oznacza
-to, że poprawa nie wymaga rewolucji w całej sieci, a celowanej interwencji logistycznej w wąskim,
-zidentyfikowanym regionie — to dużo tańsze i szybsze do wdrożenia.
+Średni czas dostawy to 12,1 dnia (mediana 10), terminowość 91,9%. Geograficznie: São Paulo
+8,3 dnia, a stany północne AP 26,7 i AM 26,0 dnia, czyli mniej więcej trzy razy wolniej.
 
-### 3e. Wzorce czasowe (heatmapa)
-- Peak: dni robocze, pasmo 10–17; najlepsza godzina zagregowana: **16:00**
-  (najwyższa pojedyncza komórka: wtorek 14:00)
-- Niedziela: najniższa aktywność dzienna, ale najwyższy udział wieczoru —
-  **38% zamówień pada w godz. 18–22** (vs 26–31% w pozostałe dni)
+Rating w zależności od czasu dostawy:
 
-**Wniosek:** Aktywność zakupowa koncentruje się w dni robocze w paśmie 10–17 (szczyt 16:00) —
-to naturalne okno na **kampanie konwersyjne i remarketing**, gdy intencja zakupowa jest najwyższa.
-Niedziela ma najniższą aktywność dzienną, ale najwyższy udział wieczoru (38% zamówień w godz.
-18–22) — to okno raczej pod **budowanie zaangażowania i kampanie świadomościowe** (przeglądanie,
-newsletter, push „zaplanuj zakup"), nie pod twardy performance. Praktycznie: harmonogram
-push/e-mail powinien być różnicowany dniem tygodnia, a nie jednolity.
+| Czas dostawy | Rating |
+|---|---|
+| ≤ 7 dni | 4,41★ |
+| 8–14 dni | 4,29★ |
+| 15–21 dni | 4,10★ |
+| 22–30 dni | 3,49★ |
+| > 30 dni | 2,18★ |
+
+Czas dostawy jest najsilniejszym pojedynczym driverem satysfakcji w tych danych. Różnica
+między dostawą do 7 dni a powyżej 30 to spadek o ponad 2,2 gwiazdki.
+
+Ważniejszy jest jednak kształt tego spadku, bo nie jest liniowy. Do 21 dni rating trzyma się
+na poziomie co najmniej 4,1. Załamanie przychodzi dopiero w przedziale 22–30 dni, gdzie spada
+do 3,49. **Próg bólu klienta leży przy trzech tygodniach, nie przy dwóch** — początkowo
+zakładałem 14 dni i musiałem tę tezę poprawić, gdy zobaczyłem, że przedział 15–21 dni wciąż
+daje 4,10.
+
+Geografia mówi, gdzie jest dźwignia. To nie jest problem całej platformy, tylko kilku stanów
+Północy. Poprawa nie wymaga więc przebudowy sieci, a celowanej interwencji w wąskim,
+zidentyfikowanym regionie. To znacznie tańsze i szybsze.
+
+### 3e. Wzorce czasowe
+
+Zakupy koncentrują się w dni robocze w paśmie 10–17, ze szczytem o 16:00 (najwyższa pojedyncza
+komórka heatmapy to wtorek 14:00). Niedziela ma najniższą aktywność dzienną, ale najwyższy
+udział wieczoru: **38% zamówień między 18 a 22**, wobec 26–31% w pozostałe dni.
+
+Te dwa okna nadają się do czegoś innego. Pasmo robocze to naturalny czas na kampanie
+konwersyjne i remarketing, bo intencja zakupowa jest wtedy najwyższa. Niedzielny wieczór lepiej
+wykorzystać na budowanie zaangażowania: przeglądanie, newsletter, przypomnienie o zaplanowanym
+zakupie. Wniosek operacyjny: harmonogram push i e-maili powinien różnić się dniem tygodnia,
+a nie być jednolity.
 
 ---
 
 ## 4. Rekomendacje biznesowe
 
-> Zasada: każda rekomendacja MUSI wynikać z konkretnej liczby powyżej.
+Trzymałem się jednej zasady: każda rekomendacja musi wynikać z konkretnej liczby powyżej.
+Jeśli nie potrafiłem jej wskazać, rekomendacja wypadała.
 
-1. **SLA dostawy: twardy limit 21 dni, cel operacyjny 14 dni** — bo rating trzyma się ≥4,1
-   do 21 dni, po czym załamuje się do 3,49★ (22–30 dni) i 2,18★ (>30 dni). Priorytet dla stanów
-   Północy (AP 26,7 / AM 26,0 dnia, ~3× wolniej niż SP). Cel mierzalny: skrócić medianę dostawy
-   w AP/AM/AL poniżej 18 dni w 2 kwartały (np. przez hub regionalny lub renegocjację stawek
-   kuriera dla regionu), co według zależności rating↔czas powinno podnieść tamtejszy rating
-   o ~0,6–1 gwiazdkę.
+**1. SLA dostawy: twardy limit 21 dni, cel operacyjny 14 dni.**
+Rating trzyma się co najmniej 4,1 do 21 dni, a potem spada do 3,49 (22–30 dni) i 2,18
+(powyżej 30). Priorytet dla stanów Północy, gdzie AP ma 26,7 a AM 26,0 dnia. Cel mierzalny:
+skrócić medianę dostawy w AP, AM i AL poniżej 18 dni w dwa kwartały, na przykład przez hub
+regionalny albo renegocjację stawek kuriera dla regionu. Zgodnie z zależnością rating do czasu
+powinno to podnieść tamtejszą ocenę o mniej więcej 0,6 do 1 gwiazdki.
 
-2. **Quality gate / onboarding dla małych sprzedawców** — bo **343 sprzedawców (~11,6%)** ma
-   rating < 3,5, głównie w długim ogonie. Wprowadzić próg wejścia (np. okres próbny z monitoringiem
-   pierwszych 20 zamówień) oraz automatyczny alert, gdy rating sprzedawcy spadnie < 3,5. Cel: obniżyć
-   udział problem sellers z 11,6% do < 8% w rok, bez zatrzymywania napływu nowych sprzedawców.
+**2. Quality gate przy wejściu dla małych sprzedawców.**
+343 sprzedawców (11,6%) ma rating poniżej 3,5, w większości w długim ogonie. Proponuję okres
+próbny z monitoringiem pierwszych 20 zamówień oraz automatyczny alert, gdy rating spadnie
+poniżej 3,5. Cel: zejść z 11,6% do poniżej 8% w rok, bez hamowania napływu nowych sprzedawców.
 
-3. **Program lojalnościowy / retencyjny** — bo retencja 3,0% oznacza, że biznes płaci CAC za
-   praktycznie jednorazowych klientów, a LTV ≈ jednemu AOV. Nawet niewielka poprawa repeat rate
-   (np. z 3,0% do 6%) podwaja zamortyzowaną wartość klienta. Konkretnie: trigger post-purchase
-   (kupon na 2. zakup w kategorii komplementarnej w 30 dni od dostawy), warunkowany pozytywną
-   recenzją — sprzęga retencję z jakością.
+**3. Program retencyjny.**
+Retencja 3,0% oznacza, że firma płaci CAC za klientów jednorazowych, a LTV równa się mniej
+więcej jednemu AOV. Nawet niewielka poprawa, z 3,0% do 6%, podwaja zamortyzowaną wartość
+klienta. Konkretnie: kupon na drugi zakup w kategorii komplementarnej, ważny 30 dni od dostawy
+i wydawany po pozytywnej recenzji. Sprzęga to retencję z jakością zamiast traktować je osobno.
 
-4. **Program naprawczy dla dominujących, ale słabych sprzedawców** — celowana interwencja dla
-   przypadków typu office_furniture (jeden gracz 64% przychodu kategorii, rating 3,49) oraz listy
-   35 sprzedawców z `sql/04` (revenue >10k BRL i rating < 3,5 lub >15% spóźnień, najgorszy: 21,5k BRL
-   / rating 1,93 / 64% spóźnień). Cel mierzalny: rating > 4,0 i spóźnienia < 8% w 2 kwartały, pod
-   rygorem obniżenia widoczności w wynikach wyszukiwania platformy.
+**4. Program naprawczy dla dużych, ale słabych sprzedawców.**
+Dotyczy przypadków takich jak office_furniture (64% przychodu kategorii przy ratingu 3,49) oraz
+listy 35 sprzedawców z `sql/04`, którzy mają przychód powyżej 10 tys. BRL i rating poniżej 3,5
+albo ponad 15% spóźnień. Najgorszy z nich: 21,5 tys. BRL przychodu, rating 1,93 i 64% spóźnień.
+Cel: rating powyżej 4,0 i spóźnienia poniżej 8% w dwa kwartały, pod rygorem obniżenia
+widoczności w wyszukiwarce platformy.
 
 ---
 
 ## 5. Ograniczenia analizy
 
-- Dane historyczne 2016–2018, rynek brazylijski — wnioski mogą nie przenosić się 1:1
-- ~1,4% pozycji bez sklasyfikowanej kategorii ('unknown' + 2 kategorie bez tłumaczenia)
-- Metryka `# Seller Orders` przeszacowana przy zamówieniach multi-seller (jedno
-  zamówienie liczone u każdego sprzedawcy)
-- Rating sprzedawcy liczony jako średnia recenzji per zamówienie — przy zamówieniach
-  multi-seller jedna recenzja jest przypisywana do każdego sprzedawcy w koszyku, co może
-  zaszumiać ocenę pojedynczego sprzedawcy (recenzja dotyczy całego doświadczenia, nie jednej pozycji)
-- Brak danych o kosztach (CAC, marża, prowizja Olist), więc wnioski o rentowności retencji
-  (LTV/CAC) są kierunkowe, nie policzone — to hipoteza do potwierdzenia danymi finansowymi
-- Repeat rate liczony po `customer_unique_id` na zamówieniach dostarczonych; klienci, którzy
-  wrócili po oknie danych (po 2018) są niewidoczni — faktyczna retencja długoterminowa może
-  być nieco wyższa
+Kilka rzeczy, o których trzeba pamiętać, czytając powyższe liczby.
+
+Dane są historyczne (Brazylia, 2016–2018), więc opisują ten rynek i ten okres, a nie
+e-commerce w ogóle. Około 1,4% pozycji nie ma sklasyfikowanej kategorii ('unknown' plus dwie
+kategorie bez tłumaczenia).
+
+Metryka `# Seller Orders` jest zawyżona przy zamówieniach z wieloma sprzedawcami, bo jedno
+zamówienie liczy się u każdego z nich. Z tego samego powodu rating sprzedawcy bywa zaszumiony:
+recenzja dotyczy całego doświadczenia zakupowego, a przypisuje się ją każdemu sprzedawcy
+w koszyku. Nie da się więc zawsze wskazać, kto odpowiada za złą ocenę.
+
+Nie mam danych kosztowych — ani CAC, ani marży, ani prowizji Olista. Wszystko, co piszę
+o rentowności retencji i relacji LTV do CAC, jest więc kierunkowe. To hipoteza do potwierdzenia
+danymi finansowymi, nie policzony wynik.
+
+Repeat rate liczę po `customer_unique_id` na zamówieniach dostarczonych. Klienci, którzy wrócili
+po zamknięciu okna danych, czyli po 2018 roku, są niewidoczni. Faktyczna retencja długoterminowa
+może być nieco wyższa niż 3,0%.
 
 ---
 
