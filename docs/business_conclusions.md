@@ -40,10 +40,10 @@ o wskazanie dźwigni, na które platforma może wpłynąć operacyjnie, a nie o 
 Olist bardzo dobrze pozyskuje klientów i sprzedaje im raz. Terminowość jest wysoka, AOV zdrowe,
 a przychód ma wyraźnego lidera w postaci top 20% sprzedawców. Problem leży gdzie indziej.
 
-Retencja praktycznie nie istnieje, więc każdy złoty przychodu wymaga dokupienia kolejnego
-klienta. Jakość obsługi zależy od dwóch rzeczy, nad którymi platforma panuje tylko częściowo:
-czasu dostawy i długiego ogona słabych sprzedawców. Wzrost jest realny, ale kupowany, nie
-budowany.
+Retencja praktycznie nie istnieje: 96,8% zamówień to pierwsze zakupy, więc sprzedaż rośnie
+dzięki nowym klientom. Ile kosztuje taki wzrost, nie wiadomo, bo w danych nie ma kosztów
+pozyskania. Jakość obsługi zależy od dwóch rzeczy, nad którymi platforma panuje tylko częściowo:
+czasu dostawy i długiego ogona słabych sprzedawców.
 
 ---
 
@@ -96,14 +96,14 @@ poziomach: bramka wejścia dla ogona i celowana interwencja u dużych, ale słab
 To najpoważniejszy problem strukturalny w całej analizie i jedyna liczba, którą sprawdzałem
 trzy razy, bo wydawała mi się zbyt niska. Jest poprawna.
 
-Praktycznie każdy klient jest jednorazowy. Koszt pozyskania ponosi się raz i nie ma go z czego
-zamortyzować, bo wartość życiowa klienta jest niemal równa jednemu AOV, czyli około 137 BRL.
-W zdrowym marketplace LTV powinno być wielokrotnością CAC. Tutaj relacja jest niebezpiecznie
-blisko granicy opłacalności.
+Praktycznie każdy klient kupuje w tych danych raz. Sprzedaż opiera się na nowych klientach:
+93 358 z 96 478 zamówień (96,8%) to pierwsze zakupy. Wartość produktów na klienta w okresie
+danych wynosi około 142 BRL, niewiele więcej niż jedno AOV (137 BRL).
 
-Konsekwencja jest prosta: wzrost przychodu zależy całkowicie od ciągłych wydatków
-marketingowych. Kiedy budżet akwizycji spada, przychód spada razem z nim. Retencja nie jest
-w tym modelu miłym dodatkiem, tylko warunkiem rentowności.
+Czy taki model jest drogi, zależy od kosztu pozyskania klienta i marży, a tych danych w zbiorze
+nie ma. Traktuję to więc jako hipotezę, nie policzony wynik: przy tak niskiej powtarzalności
+każdy koszt pozyskania rozkłada się zwykle na jedno zamówienie. Dlatego retencja jest pierwszym
+obszarem do testu (rekomendacja 3).
 
 ### 3d. Dostawa i logistyka
 
@@ -165,10 +165,13 @@ próbny z monitoringiem pierwszych 20 zamówień oraz automatyczny alert, gdy ra
 poniżej 3,5. Cel: zejść z 11,6% do poniżej 8% w rok, bez hamowania napływu nowych sprzedawców.
 
 **3. Program retencyjny.**
-Retencja 3,0% oznacza, że firma płaci CAC za klientów jednorazowych, a LTV równa się mniej
-więcej jednemu AOV. Nawet niewielka poprawa, z 3,0% do 6%, podwaja zamortyzowaną wartość
-klienta. Konkretnie: kupon na drugi zakup w kategorii komplementarnej, ważny 30 dni od dostawy
-i wydawany po pozytywnej recenzji. Sprzęga to retencję z jakością zamiast traktować je osobno.
+Wraca tylko 3,0% klientów, więc w okresie danych przypada około 1,03 zamówienia na klienta.
+Gdyby odsetek powracających wzrósł do 6%, a każdy nowy powracający złożył jedno dodatkowe
+zamówienie, ta liczba wzrosłaby z 1,033 do 1,063, czyli o około 2,9%. Podwaja się odsetek
+powracających, a nie wartość klienta. Czy program się opłaca, rozstrzygną marża i koszt
+pozyskania klienta, których w danych nie ma. Proponuję kupon na drugi zakup w kategorii
+komplementarnej, ważny 30 dni od dostawy i wydawany po pozytywnej recenzji. Sprzęga to
+retencję z jakością zamiast traktować je osobno.
 
 **4. Program naprawczy dla dużych, ale słabych sprzedawców.**
 Dotyczy przypadków takich jak office_furniture (64% przychodu kategorii przy ratingu 3,49) oraz

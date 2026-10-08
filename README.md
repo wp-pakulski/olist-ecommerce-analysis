@@ -25,10 +25,11 @@ I explain that choice below, in "Metric definitions".
 | Delivery geography | São Paulo 8.3 days, northern states 26 to 27 days, roughly **3× slower** |
 | Problem sellers | **343 sellers (11.6%)** rated below 3.5★ |
 
-**What it adds up to:** Olist is very good at acquiring customers and selling to them once.
-Growth is bought rather than built. With retention at 3%, every unit of revenue needs new
-marketing spend behind it. Service quality depends on two things the platform controls only
-in part: delivery time and a long tail of weak sellers.
+**What it adds up to:** Olist is very good at acquiring customers and selling to them once:
+96.8% of orders are first purchases, so sales grow through new customers. Whether that growth
+is expensive is an open question, because the data has no acquisition costs or margins.
+Service quality depends on two things the platform controls only in part: delivery time and a
+long tail of weak sellers.
 
 **Full analysis with quantified recommendations:** [docs/business_conclusions.md](docs/business_conclusions.md)
 
